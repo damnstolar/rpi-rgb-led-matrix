@@ -48,6 +48,20 @@ def upload_gif():
         return jsonify({'status': 'ok', 'message': f'GIF przesłany: {filename}'})
     return jsonify({'status': 'error', 'message': 'Nieprawidłowy plik GIF'})
 
+@app.route('/set_center', methods=['POST'])
+def set_center():
+    center = request.form.get('center') == 'true'
+    with open('/tmp/display_mode.txt', 'w') as f:
+        f.write(f"center:{center}")
+    return jsonify({'status': 'ok', 'message': f'Centruj: {center}'})
+
+@app.route('/set_brightness', methods=['POST'])
+def set_brightness():
+    bright = int(request.form.get('brightness', 100))
+    with open('/tmp/display_mode.txt', 'w') as f:
+        f.write(f"brightness:{bright}")
+    return jsonify({'status': 'ok', 'message': f'Jasność: {bright}'})
+
 @app.route('/get_gifs')
 def get_gifs():
     gifs = [f for f in os.listdir('gifs') if f.endswith(('.gif', '.GIF'))]

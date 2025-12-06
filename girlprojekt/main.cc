@@ -22,6 +22,8 @@ using ImageVector = std::vector<Magick::Image>;
 
 // Stan globalny
 std::atomic<bool> interrupt_received(false);
+std::atomic<bool> center_gif(true);
+std::atomic<int> brightness(100);
 
 // Funkcje pomocnicze
 static void InterruptHandler(int signo) {
@@ -50,14 +52,21 @@ void DisplayGifFrame(RGBMatrix *matrix, const ImageVector &images, int &frame_in
   // Skalowanie do rozmiaru matrix
   Magick::Image scaled = image;
   scaled.scale(Magick::Geometry(matrix->width(), matrix->height()));
+  // Wyczyść canvas
+  offscreen_canvas->Fill(0, 0, 0);
+  // Obliczenie offsetu dla centrowania
+  int offset_x = center_gif ? (matrix->width() - scaled.columns()) / 2 : 0;
+  int offset_y = center_gif ? (matrix->height() - scaled.rows()) / 2 : 0;
   // Kopiowanie do canvas
   for (size_t y = 0; y < scaled.rows(); ++y) {
     for (size_t x = 0; x < scaled.columns(); ++x) {
       const Magick::Color &c = scaled.pixelColor(x, y);
-      offscreen_canvas->SetPixel(x, y,
-                                 ScaleQuantumToChar(c.redQuantum()),
-                                 ScaleQuantumToChar(c.greenQuantum()),
-                                 ScaleQuantumToChar(c.blueQuantum()));
+      if (c.alphaQuantum() < 256) {  // Sprawdź kanał alpha
+        offscreen_canvas->SetPixel(x + offset_x, y + offset_y,
+                                   ScaleQuantumToChar(c.redQuantum()),
+                                   ScaleQuantumToChar(c.greenQuantum()),
+                                   ScaleQuantumToChar(c.blueQuantum()));
+      }
     }
   }
   offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
@@ -80,12 +89,19 @@ int main(int argc, char *argv[]) {
   Magick::InitializeMagick(*argv);
 
   RGBMatrix::Options defaults;
+  defaults.hardware_mapping = "adafruit-hat";
+  defaults.rows = 32;
+  defaults.cols = 128;
+  defaults.chain_length = 1;
+  defaults.parallel = 1;
+  defaults.slowdown_gpio = 3;
   rgb_matrix::RuntimeOptions runtime_opt;
   if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &defaults, &runtime_opt)) {
     return 1;
   }
   Canvas *canvas = RGBMatrix::CreateFromOptions(defaults, runtime_opt);
   if (canvas == NULL) return 1;
+  ((RGBMatrix*)canvas)->SetBrightness(brightness);
 
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
@@ -111,7 +127,6 @@ int main(int argc, char *argv[]) {
       std::string line;
       if (std::getline(mode_file, line)) {
         if (line != current_mode) {
-          printf("DEBUG: Zmiana trybu na: %s\n", line.c_str());
           current_mode = line;
           gif_loaded = false; // Wymuś przeładowanie GIF-a jeśli zmieniony
           gif_frame_index = 0;
@@ -126,25 +141,25 @@ int main(int argc, char *argv[]) {
       std::string type = current_mode.substr(0, colon_pos);
       std::string value = current_mode.substr(colon_pos + 1);
 
-      if (type == "text") {
-        printf("DEBUG: Wyświetlam tekst: %s\n", value.c_str());
+      if (type == "center") {
+        center_gif = (value == "true");
+      } else if (type == "brightness") {
+        brightness = std::stoi(value);
+        ((RGBMatrix*)canvas)->SetBrightness(brightness);
+      } else if (type == "text") {
         DisplayTextFrame((RGBMatrix*)canvas, value, font, offscreen_canvas);
       } else if (type == "gif") {
         if (!gif_loaded) {
           current_gif.clear();
-          printf("DEBUG: Ładowanie GIF-a: %s\n", value.c_str());
           if (LoadGif(value.c_str(), &current_gif)) {
-            printf("DEBUG: GIF załadowany, klatek: %zu\n", current_gif.size());
             gif_loaded = true;
           } else {
-            printf("DEBUG: Błąd ładowania GIF-a\n");
             // Jeśli błąd, wyświetl tekst błędu
             DisplayTextFrame((RGBMatrix*)canvas, "Blad GIF-a", font, offscreen_canvas);
             usleep(2000000); // 2 sekundy
             continue;
           }
         }
-        printf("DEBUG: Wyświetlam klatkę GIF-a: %d\n", gif_frame_index);
         DisplayGifFrame((RGBMatrix*)canvas, current_gif, gif_frame_index, offscreen_canvas);
         // Opóźnienie animacji
         if (!current_gif.empty()) {
@@ -154,7 +169,6 @@ int main(int argc, char *argv[]) {
       }
     } else {
       // Domyślny tekst
-      printf("DEBUG: Wyświetlam domyślny tekst\n");
       DisplayTextFrame((RGBMatrix*)canvas, "Witaj w girlprojekt!", font, offscreen_canvas);
     }
 
