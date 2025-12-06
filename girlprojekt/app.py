@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 
@@ -11,8 +11,13 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
+    with open('index.html', 'r') as f:
+        html = f.read()
     gifs = [f for f in os.listdir('gifs') if f.endswith(('.gif', '.GIF'))]
-    return render_template('index.html', gifs=gifs)
+    # Proste zastąpienie placeholder
+    gifs_options = ''.join(f'<option value="{gif}">{gif}</option>' for gif in gifs)
+    html = html.replace('<option value="">Wybierz GIF</option>', f'<option value="">Wybierz GIF</option>{gifs_options}')
+    return html
 
 @app.route('/set_text', methods=['POST'])
 def set_text():
