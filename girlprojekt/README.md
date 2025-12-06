@@ -1,11 +1,12 @@
 # Projekt Girlprojekt - Wyświetlanie GIF-ów i tekstu na panelach LED
 
-Ten projekt pozwala na wyświetlanie GIF-ów i tekstu na panelach LED Raspberry Pi, sterowane przez interfejs przeglądarki poprzez serwer HTTP.
+Ten projekt pozwala na wyświetlanie GIF-ów i tekstu na panelach LED Raspberry Pi, sterowane przez interfejs przeglądarki z serwerem HTTP w Pythonie (Flask).
 
 ## Wymagania
 
 - Raspberry Pi z zainstalowanym rpi-rgb-led-matrix
 - GraphicsMagick: `sudo apt-get install libgraphicsmagick++-dev libwebp-dev` (na RPi) lub `brew install graphicsmagick` (na macOS)
+- Python 3 z Flask: `pip install flask`
 - Kompilator C++ z obsługą C++11
 
 ## Kompilacja
@@ -15,20 +16,25 @@ Ten projekt pozwala na wyświetlanie GIF-ów i tekstu na panelach LED Raspberry 
 
 ## Uruchomienie
 
-`sudo ./girlprojekt`
+1. Uruchom aplikację C++: `sudo ./girlprojekt`
+2. W osobnym terminalu uruchom serwer Flask: `python app.py`
 
 Serwer HTTP działa na porcie 8080.
 
-Otwórz przeglądarkę i przejdź do `http://<IP_RPI>:8080/index.html`
+Otwórz przeglądarkę i przejdź do `http://<IP_RPI>:8080`
 
 ## Użycie
 
 - Wpisz tekst i kliknij "Wyświetl tekst"
-- Wpisz ścieżkę do pliku GIF i kliknij "Wyświetl GIF"
+- Wybierz GIF z listy i kliknij "Wyświetl GIF"
+- Prześlij nowy GIF przez formularz uploadu
+
+Komunikacja między serwerem a aplikacją C++ odbywa się przez plik `/tmp/display_mode.txt`.
 
 ## Pliki
 
-- `main.cc`: Główny kod aplikacji
+- `main.cc`: Główny kod aplikacji C++ (wyświetlanie)
+- `app.py`: Serwer HTTP w Pythonie (Flask)
 - `index.html`: Interfejs webowy
 - `Makefile`: Skrypt kompilacji
-- `httplib.h`: Biblioteka HTTP (header-only)
+- `gifs/`: Katalog na pliki GIF

@@ -15,6 +15,7 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <fstream>
 
 using namespace rgb_matrix;
 using ImageVector = std::vector<Magick::Image>;
@@ -104,10 +105,49 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Główna pętla wyświetlania - wyświetlanie domyślnego tekstu
-  std::string text = "Witaj w girlprojekt!";
+  // Główna pętla wyświetlania
+  std::string current_mode = "text:Witaj w girlprojekt!";
+  ImageVector current_gif;
+  bool gif_loaded = false;
+
   while (!interrupt_received) {
-    DisplayText((RGBMatrix*)canvas, text, font);
+    // Czytaj tryb z pliku
+    std::ifstream mode_file("/tmp/display_mode.txt");
+    if (mode_file.is_open()) {
+      std::string line;
+      if (std::getline(mode_file, line)) {
+        current_mode = line;
+        gif_loaded = false; // Wymuś przeładowanie GIF-a jeśli zmieniony
+      }
+      mode_file.close();
+    }
+
+    // Parsuj tryb
+    size_t colon_pos = current_mode.find(':');
+    if (colon_pos != std::string::npos) {
+      std::string type = current_mode.substr(0, colon_pos);
+      std::string value = current_mode.substr(colon_pos + 1);
+
+      if (type == "text") {
+        DisplayText((RGBMatrix*)canvas, value, font);
+      } else if (type == "gif") {
+        if (!gif_loaded || current_gif.empty()) {
+          current_gif.clear();
+          if (LoadGif(value.c_str(), &current_gif)) {
+            gif_loaded = true;
+          } else {
+            // Jeśli błąd, wyświetl tekst błędu
+            DisplayText((RGBMatrix*)canvas, "Blad GIF-a", font);
+            usleep(2000000); // 2 sekundy
+            continue;
+          }
+        }
+        DisplayGif((RGBMatrix*)canvas, current_gif);
+      }
+    } else {
+      // Domyślny tekst
+      DisplayText((RGBMatrix*)canvas, "Witaj w girlprojekt!", font);
+    }
   }
   canvas->Clear();
   delete canvas;

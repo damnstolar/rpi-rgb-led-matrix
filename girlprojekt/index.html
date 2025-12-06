@@ -8,27 +8,108 @@
     <h1>Sterowanie wyświetlaniem na panelu LED</h1>
 
     <h2>Wyświetl tekst</h2>
-    <input type="text" id="textInput" placeholder="Wpisz tekst">
-    <button onclick="setText()">Wyświetl tekst</button>
+    <form id="textForm">
+        <input type="text" name="text" placeholder="Wpisz tekst" required>
+        <button type="submit">Wyświetl tekst</button>
+    </form>
 
     <h2>Wyświetl GIF</h2>
-    <input type="text" id="gifInput" placeholder="Ścieżka do pliku GIF">
-    <button onclick="setGif()">Wyświetl GIF</button>
+    <form id="gifForm">
+        <select name="gif" id="gifSelect" required>
+            <option value="">Wybierz GIF</option>
+        </select>
+        <button type="submit">Wyświetl GIF</button>
+    </form>
+
+    <h2>Prześlij nowy GIF</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".gif" required>
+        <button type="submit">Prześlij</button>
+    </form>
+
+    <div id="message"></div>
 
     <script>
-        function setText() {
-            const text = document.getElementById('textInput').value;
-            fetch(`/text?msg=${encodeURIComponent(text)}`)
-                .then(response => response.text())
-                .then(data => alert(data));
+        function showMessage(msg, isError = false) {
+            const div = document.getElementById('message');
+            div.textContent = msg;
+            div.style.color = isError ? 'red' : 'green';
+            setTimeout(() => div.textContent = '', 3000);
         }
 
-        function setGif() {
-            const path = document.getElementById('gifInput').value;
-            fetch(`/gif?path=${encodeURIComponent(path)}`)
-                .then(response => response.text())
-                .then(data => alert(data));
+        // Ładowanie listy GIF-ów
+        function loadGifs() {
+            fetch('/get_gifs')
+                .then(response => response.json())
+                .then(gifs => {
+                    const select = document.getElementById('gifSelect');
+                    select.innerHTML = '<option value="">Wybierz GIF</option>';
+                    gifs.forEach(gif => {
+                        const option = document.createElement('option');
+                        option.value = gif;
+                        option.textContent = gif;
+                        select.appendChild(option);
+                    });
+                });
         }
+
+        // Formularz tekstu
+        document.getElementById('textForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/set_text', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showMessage(data.message);
+                } else {
+                    showMessage(data.message, true);
+                }
+            });
+        });
+
+        // Formularz GIF-a
+        document.getElementById('gifForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/set_gif', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showMessage(data.message);
+                } else {
+                    showMessage(data.message, true);
+                }
+            });
+        });
+
+        // Formularz uploadu
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/upload_gif', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    showMessage(data.message);
+                    loadGifs(); // Odśwież listę
+                } else {
+                    showMessage(data.message, true);
+                }
+            });
+        });
+
+        // Ładuj GIF-y przy starcie
+        loadGifs();
     </script>
 </body>
 </html>

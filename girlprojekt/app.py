@@ -1,0 +1,52 @@
+from flask import Flask, request, render_template, jsonify
+import os
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'gifs'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
+
+# Upewnij się, że katalog istnieje
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+@app.route('/')
+def index():
+    gifs = [f for f in os.listdir('gifs') if f.endswith(('.gif', '.GIF'))]
+    return render_template('index.html', gifs=gifs)
+
+@app.route('/set_text', methods=['POST'])
+def set_text():
+    text = request.form.get('text', 'Witaj!')
+    with open('/tmp/display_mode.txt', 'w') as f:
+        f.write(f"text:{text}")
+    return jsonify({'status': 'ok', 'message': f'Tekst ustawiony: {text}'})
+
+@app.route('/set_gif', methods=['POST'])
+def set_gif():
+    gif_name = request.form.get('gif')
+    if gif_name and os.path.exists(os.path.join('gifs', gif_name)):
+        with open('/tmp/display_mode.txt', 'w') as f:
+            f.write(f"gif:gifs/{gif_name}")
+        return jsonify({'status': 'ok', 'message': f'GIF ustawiony: {gif_name}'})
+    return jsonify({'status': 'error', 'message': 'GIF nie znaleziony'})
+
+@app.route('/upload_gif', methods=['POST'])
+def upload_gif():
+    if 'file' not in request.files:
+        return jsonify({'status': 'error', 'message': 'Brak pliku'})
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': 'Brak nazwy pliku'})
+    if file and file.filename.lower().endswith('.gif'):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        return jsonify({'status': 'ok', 'message': f'GIF przesłany: {filename}'})
+    return jsonify({'status': 'error', 'message': 'Nieprawidłowy plik GIF'})
+
+@app.route('/get_gifs')
+def get_gifs():
+    gifs = [f for f in os.listdir('gifs') if f.endswith(('.gif', '.GIF'))]
+    return jsonify(gifs)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
