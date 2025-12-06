@@ -12,7 +12,7 @@ RGB_LIBRARY=$(RGB_LIBDIR)/lib$(RGB_LIBRARY_NAME).a
 LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 
 # Dla GraphicsMagick
-MAGICK_CXXFLAGS?=$(shell GraphicsMagick++-config --cppflags --cxxflags)
+MAGICK_CXXFLAGS?=$(shell GraphicsMagick++-config --cppflags --cxxflags | sed 's/-Werror=implicit-function-declaration//')
 MAGICK_LDFLAGS?=$(shell GraphicsMagick++-config --ldflags --libs)
 
 all: $(BINARIES)
@@ -24,7 +24,7 @@ girlprojekt: main.o $(RGB_LIBRARY)
 	$(CXX) $< -o $@ $(LDFLAGS) $(MAGICK_LDFLAGS)
 
 main.o: main.cc
-	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
 
 clean:
 	rm -f $(OBJECTS) $(BINARIES)
