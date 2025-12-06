@@ -8,12 +8,9 @@
 #include <Magick++.h>
 #include <magick/image.h>
 
-#include "httplib.h"
 
 #include <atomic>
-#include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
 using namespace rgb_matrix;
@@ -21,10 +18,6 @@ using ImageVector = std::vector<Magick::Image>;
 
 // Stan globalny
 std::atomic<bool> interrupt_received(false);
-std::mutex state_mutex;
-std::string current_text = "Witaj!";
-std::string current_gif_path = "";
-bool display_text = true; // true dla tekstu, false dla GIF-a
 
 // Funkcje pomocnicze
 static void InterruptHandler(int signo) {
@@ -86,30 +79,6 @@ void DisplayText(RGBMatrix *matrix, const std::string &text, Font &font) {
   }
 }
 
-// Serwer HTTP
-void RunHttpServer() {
-  httplib::Server svr;
-
-  svr.Get("/text", [](const httplib::Request &req, httplib::Response &res) {
-    std::lock_guard<std::mutex> lock(state_mutex);
-    display_text = true;
-    if (req.has_param("msg")) {
-      current_text = req.get_param_value("msg");
-    }
-    res.set_content("Tekst ustawiony: " + current_text, "text/plain");
-  });
-
-  svr.Get("/gif", [](const httplib::Request &req, httplib::Response &res) {
-    std::lock_guard<std::mutex> lock(state_mutex);
-    display_text = false;
-    if (req.has_param("path")) {
-      current_gif_path = req.get_param_value("path");
-    }
-    res.set_content("GIF ustawiony: " + current_gif_path, "text/plain");
-  });
-
-  svr.listen("0.0.0.0", 8080);
-}
 
 int main(int argc, char *argv[]) {
   Magick::InitializeMagick(*argv);
@@ -132,26 +101,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  // Uruchomienie serwera HTTP w osobnym wątku
-  std::thread server_thread(RunHttpServer);
-
-  // Główna pętla wyświetlania
+  // Główna pętla wyświetlania - wyświetlanie domyślnego tekstu
+  std::string text = "Witaj w girlprojekt!";
   while (!interrupt_received) {
-    std::lock_guard<std::mutex> lock(state_mutex);
-    if (display_text) {
-      DisplayText((RGBMatrix*)canvas, current_text, font);
-    } else if (!current_gif_path.empty()) {
-      ImageVector images;
-      if (LoadGif(current_gif_path.c_str(), &images)) {
-        DisplayGif((RGBMatrix*)canvas, images);
-      } else {
-        // Jeśli błąd, wróć do tekstu
-        display_text = true;
-      }
-    }
+    DisplayText((RGBMatrix*)canvas, text, font);
   }
-
-  server_thread.join();
   canvas->Clear();
   delete canvas;
   return 0;
