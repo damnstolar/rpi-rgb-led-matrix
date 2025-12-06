@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Sterowanie panelem LED</title>
+</head>
+<body>
+    <h1>Sterowanie wyświetlaniem na panelu LED</h1>
+
+    <h2>Wyświetl tekst</h2>
+    <input type="text" id="textInput" placeholder="Wpisz tekst">
+    <button onclick="setText()">Wyświetl tekst</button>
+
+    <h2>Wyświetl GIF</h2>
+    <input type="text" id="gifInput" placeholder="Ścieżka do pliku GIF">
+    <button onclick="setGif()">Wyświetl GIF</button>
+
+    <script>
+        function setText() {
+            const text = document.getElementById('textInput').value;
+            fetch(`/text?msg=${encodeURIComponent(text)}`)
+                .then(response => response.text())
+                .then(data => alert(data));
+        }
+
+        function setGif() {
+            const path = document.getElementById('gifInput').value;
+            fetch(`/gif?path=${encodeURIComponent(path)}`)
+                .then(response => response.text())
+                .then(data => alert(data));
+        }
+    </script>
+</body>
+</html>
