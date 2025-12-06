@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+#include <signal.h>
+
 using namespace rgb_matrix;
 using ImageVector = std::vector<Magick::Image>;
 
