@@ -14,9 +14,12 @@ def index():
     with open('index.html', 'r') as f:
         html = f.read()
     gifs = [f for f in os.listdir('gifs') if f.endswith(('.gif', '.GIF'))]
-    # Proste zastąpienie placeholder
-    gifs_options = ''.join(f'<option value="{gif}">{gif}</option>' for gif in gifs)
-    html = html.replace('<option value="">Wybierz GIF</option>', f'<option value="">Wybierz GIF</option>{gifs_options}')
+    # Zastąp całą sekcję select
+    select_start = html.find('<select name="gif" id="gifSelect" required>')
+    select_end = html.find('</select>', select_start) + 9
+    if select_start != -1 and select_end != -1:
+        gifs_options = '<option value="">Wybierz GIF</option>' + ''.join(f'<option value="{gif}">{gif}</option>' for gif in gifs)
+        html = html[:select_start] + f'<select name="gif" id="gifSelect" required>{gifs_options}</select>' + html[select_end:]
     return html
 
 @app.route('/set_text', methods=['POST'])
