@@ -80,11 +80,11 @@ int main(int argc, char *argv[]) {
   Magick::InitializeMagick(*argv);
 
   RGBMatrix::Options defaults;
-  defaults.hardware_mapping = "regular";
-  defaults.rows = 32;
-  defaults.chain_length = 1;
-  defaults.parallel = 1;
-  Canvas *canvas = RGBMatrix::CreateFromFlags(&argc, &argv, &defaults);
+  rgb_matrix::RuntimeOptions runtime_opt;
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &defaults, &runtime_opt)) {
+    return 1;
+  }
+  Canvas *canvas = RGBMatrix::CreateFromOptions(defaults, runtime_opt);
   if (canvas == NULL) return 1;
 
   signal(SIGTERM, InterruptHandler);
