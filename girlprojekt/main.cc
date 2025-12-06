@@ -43,44 +43,36 @@ bool LoadGif(const char *filename, ImageVector *result) {
   return true;
 }
 
-// Wyświetlanie GIF-a
-void DisplayGif(RGBMatrix *matrix, const ImageVector &images) {
-  FrameCanvas *offscreen_canvas = matrix->CreateFrameCanvas();
-  while (!interrupt_received) {
-    for (const auto &image : images) {
-      if (interrupt_received) break;
-      // Skalowanie do rozmiaru matrix
-      Magick::Image scaled = image;
-      scaled.scale(Magick::Geometry(matrix->width(), matrix->height()));
-      // Kopiowanie do canvas
-      for (size_t y = 0; y < scaled.rows(); ++y) {
-        for (size_t x = 0; x < scaled.columns(); ++x) {
-          const Magick::Color &c = scaled.pixelColor(x, y);
-          offscreen_canvas->SetPixel(x, y,
-                                     ScaleQuantumToChar(c.redQuantum()),
-                                     ScaleQuantumToChar(c.greenQuantum()),
-                                     ScaleQuantumToChar(c.blueQuantum()));
-        }
-      }
-      offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
-      usleep(image.animationDelay() * 10000); // Opóźnienie animacji
+// Wyświetlanie jednej klatki GIF-a
+void DisplayGifFrame(RGBMatrix *matrix, const ImageVector &images, int &frame_index, FrameCanvas *offscreen_canvas) {
+  if (images.empty()) return;
+  const auto &image = images[frame_index % images.size()];
+  // Skalowanie do rozmiaru matrix
+  Magick::Image scaled = image;
+  scaled.scale(Magick::Geometry(matrix->width(), matrix->height()));
+  // Kopiowanie do canvas
+  for (size_t y = 0; y < scaled.rows(); ++y) {
+    for (size_t x = 0; x < scaled.columns(); ++x) {
+      const Magick::Color &c = scaled.pixelColor(x, y);
+      offscreen_canvas->SetPixel(x, y,
+                                 ScaleQuantumToChar(c.redQuantum()),
+                                 ScaleQuantumToChar(c.greenQuantum()),
+                                 ScaleQuantumToChar(c.blueQuantum()));
     }
   }
+  offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
+  frame_index++;
 }
 
 // Wyświetlanie tekstu, na podstawie text-example.cc
-void DisplayText(RGBMatrix *matrix, const std::string &text, Font &font) {
-  FrameCanvas *offscreen_canvas = matrix->CreateFrameCanvas();
+void DisplayTextFrame(RGBMatrix *matrix, const std::string &text, Font &font, FrameCanvas *offscreen_canvas) {
   Color color(255, 255, 255);
   Color bg_color(0, 0, 0);
   int x = 0;
   int y = font.baseline();
-  while (!interrupt_received) {
-    offscreen_canvas->Fill(bg_color.r, bg_color.g, bg_color.b);
-    DrawText(offscreen_canvas, font, x, y, color, &bg_color, text.c_str(), 0);
-    offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
-    usleep(100000); // Odświeżanie co 100ms
-  }
+  offscreen_canvas->Fill(bg_color.r, bg_color.g, bg_color.b);
+  DrawText(offscreen_canvas, font, x, y, color, &bg_color, text.c_str(), 0);
+  offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
 }
 
 
@@ -106,9 +98,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Główna pętla wyświetlania
+  FrameCanvas *offscreen_canvas = ((RGBMatrix*)canvas)->CreateFrameCanvas();
   std::string current_mode = "text:Witaj w girlprojekt!";
   ImageVector current_gif;
   bool gif_loaded = false;
+  int gif_frame_index = 0;
+  long last_frame_time = 0;
 
   while (!interrupt_received) {
     // Czytaj tryb z pliku
@@ -116,8 +111,11 @@ int main(int argc, char *argv[]) {
     if (mode_file.is_open()) {
       std::string line;
       if (std::getline(mode_file, line)) {
-        current_mode = line;
-        gif_loaded = false; // Wymuś przeładowanie GIF-a jeśli zmieniony
+        if (line != current_mode) {
+          current_mode = line;
+          gif_loaded = false; // Wymuś przeładowanie GIF-a jeśli zmieniony
+          gif_frame_index = 0;
+        }
       }
       mode_file.close();
     }
@@ -129,25 +127,33 @@ int main(int argc, char *argv[]) {
       std::string value = current_mode.substr(colon_pos + 1);
 
       if (type == "text") {
-        DisplayText((RGBMatrix*)canvas, value, font);
+        DisplayTextFrame((RGBMatrix*)canvas, value, font, offscreen_canvas);
       } else if (type == "gif") {
-        if (!gif_loaded || current_gif.empty()) {
+        if (!gif_loaded) {
           current_gif.clear();
           if (LoadGif(value.c_str(), &current_gif)) {
             gif_loaded = true;
           } else {
             // Jeśli błąd, wyświetl tekst błędu
-            DisplayText((RGBMatrix*)canvas, "Blad GIF-a", font);
+            DisplayTextFrame((RGBMatrix*)canvas, "Blad GIF-a", font, offscreen_canvas);
             usleep(2000000); // 2 sekundy
             continue;
           }
         }
-        DisplayGif((RGBMatrix*)canvas, current_gif);
+        DisplayGifFrame((RGBMatrix*)canvas, current_gif, gif_frame_index, offscreen_canvas);
+        // Opóźnienie animacji
+        if (!current_gif.empty()) {
+          int delay = current_gif[gif_frame_index % current_gif.size()].animationDelay();
+          usleep(delay * 10000);
+        }
       }
     } else {
       // Domyślny tekst
-      DisplayText((RGBMatrix*)canvas, "Witaj w girlprojekt!", font);
+      DisplayTextFrame((RGBMatrix*)canvas, "Witaj w girlprojekt!", font, offscreen_canvas);
     }
+
+    // Małe opóźnienie, aby nie obciążać CPU
+    usleep(10000); // 10ms
   }
   canvas->Clear();
   delete canvas;
