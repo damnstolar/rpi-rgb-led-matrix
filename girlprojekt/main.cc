@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fstream>
 
 #include <algorithm>
 #include <map>
@@ -106,14 +107,6 @@ static void StoreInStream(const Magick::Image &img, int delay_time_us,
   output->Stream(*scratch, delay_time_us);
 }
 
-static void CopyStream(rgb_matrix::StreamReader *r,
-                       rgb_matrix::StreamWriter *w,
-                       rgb_matrix::FrameCanvas *scratch) {
-  uint32_t delay_us;
-  while (r->GetNext(scratch, &delay_us)) {
-    w->Stream(*scratch, delay_us);
-  }
-}
 
 // Load still image or animation.
 // Scale, so that it fits in "width" and "height" and store in "result".
@@ -235,8 +228,7 @@ int main(int argc, char *argv[]) {
   const bool fill_width = false;
   const bool fill_height = false;
 
-  const tmillis_t start_load = GetTimeInMillis();
-  fprintf(stderr, "Loading initial content...\n");
+  fprintf(stderr, "Starting...\n");
 
   // Load initial content
   std::vector<FileInfo*> file_imgs;
