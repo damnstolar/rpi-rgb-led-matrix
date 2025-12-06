@@ -103,7 +103,6 @@ int main(int argc, char *argv[]) {
   ImageVector current_gif;
   bool gif_loaded = false;
   int gif_frame_index = 0;
-  long last_frame_time = 0;
 
   while (!interrupt_received) {
     // Czytaj tryb z pliku
@@ -112,6 +111,7 @@ int main(int argc, char *argv[]) {
       std::string line;
       if (std::getline(mode_file, line)) {
         if (line != current_mode) {
+          printf("DEBUG: Zmiana trybu na: %s\n", line.c_str());
           current_mode = line;
           gif_loaded = false; // Wymuś przeładowanie GIF-a jeśli zmieniony
           gif_frame_index = 0;
@@ -127,19 +127,24 @@ int main(int argc, char *argv[]) {
       std::string value = current_mode.substr(colon_pos + 1);
 
       if (type == "text") {
+        printf("DEBUG: Wyświetlam tekst: %s\n", value.c_str());
         DisplayTextFrame((RGBMatrix*)canvas, value, font, offscreen_canvas);
       } else if (type == "gif") {
         if (!gif_loaded) {
           current_gif.clear();
+          printf("DEBUG: Ładowanie GIF-a: %s\n", value.c_str());
           if (LoadGif(value.c_str(), &current_gif)) {
+            printf("DEBUG: GIF załadowany, klatek: %zu\n", current_gif.size());
             gif_loaded = true;
           } else {
+            printf("DEBUG: Błąd ładowania GIF-a\n");
             // Jeśli błąd, wyświetl tekst błędu
             DisplayTextFrame((RGBMatrix*)canvas, "Blad GIF-a", font, offscreen_canvas);
             usleep(2000000); // 2 sekundy
             continue;
           }
         }
+        printf("DEBUG: Wyświetlam klatkę GIF-a: %d\n", gif_frame_index);
         DisplayGifFrame((RGBMatrix*)canvas, current_gif, gif_frame_index, offscreen_canvas);
         // Opóźnienie animacji
         if (!current_gif.empty()) {
@@ -149,6 +154,7 @@ int main(int argc, char *argv[]) {
       }
     } else {
       // Domyślny tekst
+      printf("DEBUG: Wyświetlam domyślny tekst\n");
       DisplayTextFrame((RGBMatrix*)canvas, "Witaj w girlprojekt!", font, offscreen_canvas);
     }
 
