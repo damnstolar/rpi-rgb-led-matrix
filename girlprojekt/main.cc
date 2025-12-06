@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
   defaults.cols = 128;
   defaults.chain_length = 1;
   defaults.parallel = 1;
-  defaults.slowdown_gpio = 3;
+  defaults.gpio_slowdown = 3;
   rgb_matrix::RuntimeOptions runtime_opt;
   if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &defaults, &runtime_opt)) {
     return 1;
