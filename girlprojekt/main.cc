@@ -166,32 +166,18 @@ static bool LoadImageAndScale(const char *filename,
   return true;
 }
 
-void DisplayAnimation(const FileInfo *file,
-                      RGBMatrix *matrix, FrameCanvas *offscreen_canvas) {
-  const tmillis_t duration_ms = (file->is_multi_frame
-                                 ? file->params.anim_duration_ms
-                                 : file->params.wait_ms);
-  rgb_matrix::StreamReader reader(file->content_stream);
-  int loops = file->params.loops;
-  const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
-  const tmillis_t override_anim_delay = file->params.anim_delay_ms;
-  for (int k = 0;
-       (loops < 0 || k < loops)
-         && !interrupt_received
-         && GetTimeInMillis() < end_time_ms;
-       ++k) {
-    uint32_t delay_us = 0;
-    while (!interrupt_received && GetTimeInMillis() <= end_time_ms
-           && reader.GetNext(offscreen_canvas, &delay_us)) {
-      const tmillis_t anim_delay_ms =
-        override_anim_delay >= 0 ? override_anim_delay : delay_us / 1000;
-      const tmillis_t start_wait_ms = GetTimeInMillis();
-      offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas,
-                                             file->params.vsync_multiple);
-      const tmillis_t time_already_spent = GetTimeInMillis() - start_wait_ms;
-      SleepMillis(anim_delay_ms - time_already_spent);
-    }
+void DisplayNextFrame(const FileInfo *file,
+                      RGBMatrix *matrix, FrameCanvas *offscreen_canvas,
+                      rgb_matrix::StreamReader &reader, int &frame_count) {
+  uint32_t delay_us = 0;
+  if (reader.GetNext(offscreen_canvas, &delay_us)) {
+    offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas, file->params.vsync_multiple);
+    frame_count++;
+    // Return delay for next frame
+  } else {
+    // End of animation, rewind
     reader.Rewind();
+    frame_count = 0;
   }
 }
 
@@ -233,6 +219,8 @@ int main(int argc, char *argv[]) {
   // Load initial content
   std::vector<FileInfo*> file_imgs;
   std::string current_mode = "text:Witaj w girlprojekt!";
+  rgb_matrix::StreamReader *reader = nullptr;
+  int frame_count = 0;
 
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
@@ -277,6 +265,9 @@ int main(int argc, char *argv[]) {
                     StoreInStream(img, delay_time_us, do_center, offscreen_canvas, &out);
                   }
                   file_imgs.push_back(file_info);
+                  delete reader;
+                  reader = new rgb_matrix::StreamReader(file_info->content_stream);
+                  frame_count = 0;
                 }
               }
             }
@@ -286,6 +277,8 @@ int main(int argc, char *argv[]) {
           } else if (type == "text" || type == "gif") {
             if (line != current_mode) {
               current_mode = line;
+              delete reader;
+              reader = nullptr;
               // Clear previous content
               for (auto *fi : file_imgs) {
                 delete fi->content_stream;
@@ -315,6 +308,8 @@ int main(int argc, char *argv[]) {
                     StoreInStream(img, delay_time_us, do_center, offscreen_canvas, &out);
                   }
                   file_imgs.push_back(file_info);
+                  reader = new rgb_matrix::StreamReader(file_info->content_stream);
+                  frame_count = 0;
                 } else {
                   fprintf(stderr, "Failed to load GIF: %s\n", err_msg.c_str());
                 }
@@ -326,9 +321,10 @@ int main(int argc, char *argv[]) {
       mode_file.close();
     }
 
-    if (!file_imgs.empty()) {
-      // Display GIF
-      DisplayAnimation(file_imgs[0], matrix, offscreen_canvas);
+    if (reader) {
+      // Display next frame of GIF
+      DisplayNextFrame(file_imgs[0], matrix, offscreen_canvas, *reader, frame_count);
+      SleepMillis(50); // Delay between frames
     } else if (current_mode.find("text:") == 0) {
       // Display text - simple implementation
       size_t colon_pos = current_mode.find(':');
@@ -351,6 +347,7 @@ int main(int argc, char *argv[]) {
   // Animation finished. Shut down the RGB matrix.
   matrix->Clear();
   delete matrix;
+  delete reader;
 
   // Leaking the FileInfos, but don't care at program end.
   return 0;
