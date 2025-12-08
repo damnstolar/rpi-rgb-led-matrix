@@ -7,7 +7,7 @@
 using namespace rgb_matrix;
 
 CommandQueue queue;
-std::atomic<bool> interrupt = false;
+std::atomic<bool> interrupt{false};
 
 int main(int argc, char *argv[]) {
     RGBMatrix::Options opt;
