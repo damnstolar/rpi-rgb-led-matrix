@@ -103,6 +103,7 @@ def display_text():
     stop_current_display()
 
     cmd = [
+        "sudo",
         TEXT_SCROLLER,
         "-f", FONT_PATH,
         "-C", color,
@@ -129,6 +130,7 @@ def display_gif():
     stop_current_display()
 
     cmd = [
+        "sudo",
         LED_IMAGE_VIEWER,
         "--led-no-hardware-pulse"
     ] + MATRIX_ARGS + [filepath]
