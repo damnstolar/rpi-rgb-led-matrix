@@ -41,7 +41,6 @@ void ShowText(RGBMatrix *matrix, const std::string &text) {
         if (x < -length) break;
     }
 
-    delete offscreen_canvas;
 }
 
 void PlayGif(RGBMatrix *matrix, const std::string &filename) {
@@ -77,5 +76,4 @@ void PlayGif(RGBMatrix *matrix, const std::string &filename) {
         usleep(100000);  // 0.1 sec per frame
     }
 
-    delete offscreen_canvas;
 }
