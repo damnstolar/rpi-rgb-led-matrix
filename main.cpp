@@ -2,6 +2,7 @@
 #include "command_queue.hpp"
 #include "handlers.hpp"
 #include "simple_http_server.hpp"
+#include <map>
 
 using namespace rgb_matrix;
 
@@ -15,7 +16,8 @@ int main(int argc, char *argv[]) {
     opt.cols = 64;
     opt.chain_length = 2;
     opt.hardware_mapping = "adafruit-hat";
-    opt.gpio_slowdown = 3;
+
+    rt.gpio_slowdown = 3;
 
     RGBMatrix *matrix = RGBMatrix::CreateFromOptions(opt, rt);
     if (!matrix) {
@@ -26,15 +28,15 @@ int main(int argc, char *argv[]) {
     // HTTP server
     SimpleHTTPServer server(8080);
 
-    server.on("/text", [&](auto params) {
+    server.on("/text", [&](const std::map<std::string,std::string>& params) {
         if (params.count("msg")) {
-            queue.push({CommandType::SHOW_TEXT, params.at("msg")});
+            queue.push(Command{CommandType::SHOW_TEXT, params.at("msg")});
         }
     });
 
-    server.on("/gif", [&](auto params) {
+    server.on("/gif", [&](const std::map<std::string,std::string>& params) {
         if (params.count("file")) {
-            queue.push({CommandType::PLAY_GIF, params.at("file")});
+            queue.push(Command{CommandType::PLAY_GIF, params.at("file")});
         }
     });
 
