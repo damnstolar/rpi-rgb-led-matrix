@@ -12,6 +12,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdint.h>
+#include <atomic>
 
 using namespace rgb_matrix;
 
