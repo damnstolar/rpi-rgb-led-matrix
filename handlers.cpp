@@ -1,6 +1,6 @@
 #include "handlers.hpp"
 #include "graphics.h"
-#include <Magick++.h>
+#include <GraphicsMagick/Magick++.h>
 #include <magick/image.h>
 #include <vector>
 #include <unistd.h>
