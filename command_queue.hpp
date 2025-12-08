@@ -2,6 +2,7 @@
 #include <string>
 #include <queue>
 #include <mutex>
+#include <atomic>
 
 enum class CommandType {
     SHOW_TEXT,
@@ -27,6 +28,8 @@ public:
         q_.pop();
         return true;
     }
+
+    std::atomic<bool> interrupt{false};
 
 private:
     std::queue<Command> q_;

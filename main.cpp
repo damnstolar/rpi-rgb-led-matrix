@@ -7,6 +7,7 @@
 using namespace rgb_matrix;
 
 CommandQueue queue;
+std::atomic<bool> interrupt = false;
 
 int main(int argc, char *argv[]) {
     RGBMatrix::Options opt;
@@ -49,6 +50,9 @@ int main(int argc, char *argv[]) {
     while (true) {
         Command cmd;
         if (queue.pop(cmd)) {
+            interrupt = true;  // Interrupt any current task
+            usleep(10000);     // Small delay to allow interrupt
+            interrupt = false;
             switch (cmd.type) {
                 case CommandType::SHOW_TEXT:
                     ShowText(matrix, cmd.arg);
