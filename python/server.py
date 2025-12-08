@@ -102,19 +102,30 @@ def display_text():
 
     stop_current_display()
 
+    # Stwórz tymczasowy plik z tekstem
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        f.write(text)
+        temp_file = f.name
+
     cmd = [
         "sudo",
         TEXT_SCROLLER,
+        "--led-no-hardware-pulse",
         "-f", FONT_PATH,
         "-C", color,
         "-s", speed,
-        "--led-no-hardware-pulse"
-    ] + MATRIX_ARGS + [text]
+        "-i", temp_file
+    ] + MATRIX_ARGS
 
     print(f"Uruchamiam komendę tekst: {' '.join(cmd)}")
     global current_process
     current_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     print(f"Uruchomiono proces tekst PID: {current_process.pid}")
+
+    # Usuń plik po uruchomieniu (proces go czyta)
+    import os
+    os.unlink(temp_file)
 
     return "Wyświetlanie tekstu rozpoczęte"
 
@@ -132,8 +143,9 @@ def display_gif():
     cmd = [
         "sudo",
         LED_IMAGE_VIEWER,
-        "--led-no-hardware-pulse"
-    ] + MATRIX_ARGS + [filepath]
+        "--led-no-hardware-pulse",
+        "-f", filepath
+    ] + MATRIX_ARGS
 
     print(f"Uruchamiam komendę GIF: {' '.join(cmd)}")
     global current_process
