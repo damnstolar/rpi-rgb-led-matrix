@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Failed to create matrix\n");
         return 1;
     }
+    printf("Matrix initialized\n");
 
     // HTTP server
     SimpleHTTPServer server(8080);
@@ -43,6 +44,7 @@ int main(int argc, char *argv[]) {
     printf("Starting HTTP server...\n");
     server.start();
 
+    printf("Entering main loop\n");
     // Main loop
     while (true) {
         Command cmd;
