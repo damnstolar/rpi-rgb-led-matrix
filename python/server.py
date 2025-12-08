@@ -34,12 +34,17 @@ def stop_current_display():
     """Zatrzymaj aktualne wyświetlanie."""
     global current_process
     if current_process:
+        print(f"Zatrzymuję proces PID: {current_process.pid}")
         try:
             current_process.terminate()
             current_process.wait(timeout=5)
+            print("Proces zatrzymany gracefully")
         except subprocess.TimeoutExpired:
             current_process.kill()
+            print("Proces zabity forcefully")
         current_process = None
+    else:
+        print("Brak aktywnego procesu do zatrzymania")
 
 @app.route('/')
 def index():
@@ -105,8 +110,10 @@ def display_text():
         "--led-no-hardware-pulse"
     ] + MATRIX_ARGS + [text]
 
+    print(f"Uruchamiam komendę tekst: {' '.join(cmd)}")
     global current_process
     current_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"Uruchomiono proces tekst PID: {current_process.pid}")
 
     return "Wyświetlanie tekstu rozpoczęte"
 
@@ -126,8 +133,10 @@ def display_gif():
         "--led-no-hardware-pulse"
     ] + MATRIX_ARGS + [filepath]
 
+    print(f"Uruchamiam komendę GIF: {' '.join(cmd)}")
     global current_process
     current_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print(f"Uruchomiono proces GIF PID: {current_process.pid}")
 
     return f"Wyświetlanie {filename} rozpoczęte"
 
@@ -135,9 +144,11 @@ def display_gif():
 def stop_display():
     """Zatrzymaj wyświetlanie."""
     stop_current_display()
+    print("Wyświetlanie zatrzymane przez użytkownika")
     return "Wyświetlanie zatrzymane"
 
 if __name__ == '__main__':
+    print("Uruchamiam serwer HTTP na porcie 5000...")
     try:
         app.run(host='0.0.0.0', port=5000, debug=False)
     except KeyboardInterrupt:
