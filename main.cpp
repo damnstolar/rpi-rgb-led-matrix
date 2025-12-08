@@ -40,6 +40,7 @@ int main(int argc, char *argv[]) {
         }
     });
 
+    printf("Starting HTTP server...\n");
     server.start();
 
     // Main loop

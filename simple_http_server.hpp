@@ -48,13 +48,26 @@ private:
 
     void run() {
         int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+        if (server_fd < 0) {
+            perror("socket failed");
+            return;
+        }
         sockaddr_in addr{};
         addr.sin_family = AF_INET;
         addr.sin_port = htons(port_);
         addr.sin_addr.s_addr = INADDR_ANY;
 
-        bind(server_fd, (sockaddr*)&addr, sizeof(addr));
-        listen(server_fd, 10);
+        if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+            perror("bind failed");
+            close(server_fd);
+            return;
+        }
+        if (listen(server_fd, 10) < 0) {
+            perror("listen failed");
+            close(server_fd);
+            return;
+        }
+        printf("HTTP server listening on port %d\n", port_);
 
         while (true) {
             int client = accept(server_fd, nullptr, nullptr);
