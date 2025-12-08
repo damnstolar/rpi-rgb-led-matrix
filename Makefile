@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -O3 -Wall -std=c++14
 INCLUDES = -I./include -I/usr/local/include -I/usr/include/GraphicsMagick
-LIBS = -L./lib -L/usr/local/lib -lrgbmatrix -lpthread -lMagick++ -lMagickCore
+LIBS = -L./lib -L/usr/local/lib -lrgbmatrix -lpthread -lGraphicsMagick++ -lGraphicsMagick
 
 TARGET = matrix-server
 
