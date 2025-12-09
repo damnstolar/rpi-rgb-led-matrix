@@ -92,7 +92,7 @@ def play_single():
 
     cmd = [
         "sudo", "../utils/led-image-viewer",
-        "-C", "-f", "-t15", "-D80",
+        "-C", "-f",
         full_path,
         f"--led-rows={config['led_rows']}",
         f"--led-cols={config['led_cols']}",
@@ -210,7 +210,7 @@ def shuffle_folder():
 
     cmd = [
         "sudo", "../utils/led-image-viewer",
-        "-C", "-f", "-w15", "-t15", "-D80"
+        "-C", "-f"
     ] + file_paths + [
         f"--led-rows={config['led_rows']}",
         f"--led-cols={config['led_cols']}",
