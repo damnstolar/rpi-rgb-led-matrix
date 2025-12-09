@@ -119,6 +119,7 @@ def scroll_text():
 
     cmd = [
         "sudo", "../examples-api-use/scrolling-text-example",
+        "-f", "../fonts/7x13.bdf",
         "--led-rows=32", "--led-cols=128",
         "--led-gpio-mapping=adafruit-hat",
         f"--led-brightness={config['brightness']}",
