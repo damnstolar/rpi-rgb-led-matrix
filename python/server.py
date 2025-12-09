@@ -167,5 +167,20 @@ def list_files():
     except OSError as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file and file.filename.lower().endswith(('.gif', '.jpg', '.jpeg', '.png')):
+        filename = os.path.basename(file.filename)
+        filepath = os.path.join(config["source_dir"], filename)
+        file.save(filepath)
+        return jsonify({"message": "File uploaded successfully", "filename": filename})
+    else:
+        return jsonify({"error": "Invalid file type. Only GIF, JPG, PNG allowed"}), 400
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

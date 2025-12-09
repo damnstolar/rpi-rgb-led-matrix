@@ -42,6 +42,11 @@
     </div>
 
     <div class="control">
+        <input type="file" id="file-input" accept=".gif,.jpg,.jpeg,.png">
+        <button id="upload-btn">Upload File</button>
+    </div>
+
+    <div class="control">
         <button id="refresh-files">Refresh Files</button>
         <div id="file-list" class="file-list"></div>
     </div>
@@ -56,6 +61,8 @@
         const scrollBtn = document.getElementById('scroll-btn');
         const sourceDirInput = document.getElementById('source-dir');
         const setSourceBtn = document.getElementById('set-source-btn');
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
         const refreshFilesBtn = document.getElementById('refresh-files');
         const fileListDiv = document.getElementById('file-list');
 
@@ -115,6 +122,24 @@
             });
             const result = await response.json();
             if (response.ok) {
+                loadFiles();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        });
+
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return alert('Select a file');
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            if (response.ok) {
+                alert('File uploaded: ' + result.filename);
                 loadFiles();
             } else {
                 alert('Error: ' + result.error);
