@@ -127,11 +127,6 @@
         <span id="brightness-value">50</span>
     </div>
 
-    <div class="control">
-        <label for="slowdown">GPIO Slowdown:</label>
-        <input type="range" id="slowdown" min="-1" max="4" value="4">
-        <span id="slowdown-value">4</span>
-    </div>
 
     <div class="control">
         <button id="stop-btn" class="stop-btn">Stop</button>
@@ -163,8 +158,6 @@
     <script>
         const brightnessSlider = document.getElementById('brightness');
         const brightnessValue = document.getElementById('brightness-value');
-        const slowdownSlider = document.getElementById('slowdown');
-        const slowdownValue = document.getElementById('slowdown-value');
         const stopBtn = document.getElementById('stop-btn');
         const shuffleBtn = document.getElementById('shuffle-btn');
         const textInput = document.getElementById('text-input');
@@ -185,20 +178,6 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: parseInt(brightnessSlider.value) })
-            });
-            const result = await response.json();
-            if (!response.ok) alert('Error: ' + result.error);
-        });
-
-        slowdownSlider.addEventListener('input', () => {
-            slowdownValue.textContent = slowdownSlider.value;
-        });
-
-        slowdownSlider.addEventListener('change', async () => {
-            const response = await fetch('/slowdown', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ value: parseInt(slowdownSlider.value) })
             });
             const result = await response.json();
             if (!response.ok) alert('Error: ' + result.error);
@@ -272,7 +251,17 @@
                 result.files.forEach(file => {
                     const div = document.createElement('div');
                     div.className = 'file-item';
-                    div.textContent = file;
+                    if (file.toLowerCase().endsWith('.gif')) {
+                        const img = document.createElement('img');
+                        img.src = `media/gifs/${file}`;
+                        img.width = 50;
+                        img.height = 50;
+                        img.style.marginRight = '10px';
+                        div.appendChild(img);
+                    }
+                    const span = document.createElement('span');
+                    span.textContent = file;
+                    div.appendChild(span);
                     const playBtn = document.createElement('button');
                     playBtn.textContent = 'Play';
                     playBtn.addEventListener('click', () => playFile(file));

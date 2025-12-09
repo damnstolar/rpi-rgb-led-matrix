@@ -65,12 +65,12 @@ def play_folder():
         "sudo", "../utils/led-image-viewer",
         "-C", "-f", "-w15", "-t15", "-D80",
         os.path.join(folder_path, "*"),
-        f"--led-rows={config['led_rows']}",
-        f"--led-cols={config['led_cols']}",
-        f"--led-gpio-mapping={config['led_gpio_mapping']}",
-        f"--led-brightness={brightness}",
-        f"--led-slowdown-gpio={config['slowdown']}"
+        "--led-rows=32", "--led-cols=128",
+        "--led-slowdown-gpio=4",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={brightness}"
     ]
+    print("Running command:", " ".join(cmd))
 
     try:
         global CURRENT_PROCESS
@@ -94,12 +94,12 @@ def play_single():
         "sudo", "../utils/led-image-viewer",
         "-C", "-f",
         full_path,
-        f"--led-rows={config['led_rows']}",
-        f"--led-cols={config['led_cols']}",
-        f"--led-gpio-mapping={config['led_gpio_mapping']}",
-        f"--led-brightness={brightness}",
-        f"--led-slowdown-gpio={config['slowdown']}"
+        "--led-rows=32", "--led-cols=128",
+        "--led-slowdown-gpio=4",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={brightness}"
     ]
+    print("Running command:", " ".join(cmd))
 
     try:
         global CURRENT_PROCESS
@@ -141,13 +141,14 @@ def scroll_text():
 
     cmd = [
         "sudo", "../examples-api-use/scrolling-text-example",
-        "-f", "../fonts/7x13.bdf",
-        f"--led-rows={config['led_rows']}",
-        f"--led-cols={config['led_cols']}",
-        f"--led-gpio-mapping={config['led_gpio_mapping']}",
+        "--led-rows=32", "--led-cols=128",
+        "--led-slowdown-gpio=4",
+        "--led-gpio-mapping=adafruit-hat",
+        "-f", "../fonts/9x15B.bdf",
         f"--led-brightness={config['brightness']}",
         text
     ]
+    print("Running command:", " ".join(cmd))
 
     try:
         global CURRENT_PROCESS
@@ -212,12 +213,12 @@ def shuffle_folder():
         "sudo", "../utils/led-image-viewer",
         "-C", "-f"
     ] + file_paths + [
-        f"--led-rows={config['led_rows']}",
-        f"--led-cols={config['led_cols']}",
-        f"--led-gpio-mapping={config['led_gpio_mapping']}",
-        f"--led-brightness={brightness}",
-        f"--led-slowdown-gpio={config['slowdown']}"
+        "--led-rows=32", "--led-cols=128",
+        "--led-slowdown-gpio=4",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={brightness}"
     ]
+    print("Running command:", " ".join(cmd))
 
     try:
         global CURRENT_PROCESS
