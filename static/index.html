@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Matrix Controller</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .control { margin: 10px 0; }
+        .file-list { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+        .file-item { margin: 5px 0; }
+        button { margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>LED Matrix Controller</h1>
+
+    <div class="control">
+        <label for="brightness">Brightness:</label>
+        <input type="range" id="brightness" min="0" max="100" value="50">
+        <span id="brightness-value">50</span>
+    </div>
+
+    <div class="control">
+        <button id="stop-btn">Stop</button>
+    </div>
+
+    <div class="control">
+        <input type="text" id="text-input" placeholder="Enter text to scroll">
+        <button id="scroll-btn">Scroll Text</button>
+    </div>
+
+    <div class="control">
+        <input type="text" id="source-dir" placeholder="Source directory" value="../media/gifs">
+        <button id="set-source-btn">Set Source Directory</button>
+    </div>
+
+    <div class="control">
+        <button id="refresh-files">Refresh Files</button>
+        <div id="file-list" class="file-list"></div>
+    </div>
+
+    <script>
+        const brightnessSlider = document.getElementById('brightness');
+        const brightnessValue = document.getElementById('brightness-value');
+        const stopBtn = document.getElementById('stop-btn');
+        const textInput = document.getElementById('text-input');
+        const scrollBtn = document.getElementById('scroll-btn');
+        const sourceDirInput = document.getElementById('source-dir');
+        const setSourceBtn = document.getElementById('set-source-btn');
+        const refreshFilesBtn = document.getElementById('refresh-files');
+        const fileListDiv = document.getElementById('file-list');
+
+        brightnessSlider.addEventListener('input', () => {
+            brightnessValue.textContent = brightnessSlider.value;
+        });
+
+        brightnessSlider.addEventListener('change', async () => {
+            const response = await fetch('/brightness', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: parseInt(brightnessSlider.value) })
+            });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        });
+
+        stopBtn.addEventListener('click', async () => {
+            const response = await fetch('/stop', { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        });
+
+        scrollBtn.addEventListener('click', async () => {
+            const text = textInput.value.trim();
+            if (!text) return alert('Enter text');
+            const response = await fetch('/scroll_text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        });
+
+        setSourceBtn.addEventListener('click', async () => {
+            const sourceDir = sourceDirInput.value.trim();
+            if (!sourceDir) return alert('Enter directory');
+            const response = await fetch('/set_source_dir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source_dir: sourceDir })
+            });
+            const result = await response.json();
+            if (response.ok) {
+                loadFiles();
+            } else {
+                alert('Error: ' + result.error);
+            }
+        });
+
+        refreshFilesBtn.addEventListener('click', loadFiles);
+
+        async function loadFiles() {
+            const response = await fetch('/list_files');
+            const result = await response.json();
+            if (response.ok) {
+                fileListDiv.innerHTML = '';
+                result.files.forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'file-item';
+                    div.textContent = file;
+                    const playBtn = document.createElement('button');
+                    playBtn.textContent = 'Play';
+                    playBtn.addEventListener('click', () => playFile(file));
+                    div.appendChild(playBtn);
+                    fileListDiv.appendChild(div);
+                });
+            } else {
+                alert('Error loading files: ' + result.error);
+            }
+        }
+
+        async function playFile(file) {
+            // Assume if ends with / or no extension, it's folder
+            const isFolder = !file.includes('.') || file.endsWith('/');
+            const endpoint = isFolder ? '/play_folder' : '/play_single';
+            const body = isFolder ? { folder: file } : { path: file };
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        }
+
+        // Load initial files
+        loadFiles();
+    </script>
+</body>
+</html>

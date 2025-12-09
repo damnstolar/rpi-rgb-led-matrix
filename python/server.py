@@ -1,170 +1,158 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Serwer HTTP do kontrolowania matrycy LED za pomocą binarek z examples-api-use i utils.
-Używa subprocess do uruchamiania text-scroller i led-image-viewer.
-"""
-
+from flask import Flask, request, jsonify, send_from_directory
+import subprocess
 import os
 import signal
-import subprocess
-from flask import Flask, request, render_template_string
+import json
 
 app = Flask(__name__)
+CURRENT_PROCESS = None
 
-# Ścieżki do binarek (zakładamy skompilowane)
-TEXT_SCROLLER = "./examples-api-use/scrolling-text-example"
-LED_IMAGE_VIEWER = "./utils/led-image-viewer"
-FONT_PATH = "fonts/7x13.bdf"
-GIF_DIR = "gifs"
+CONFIG_FILE = "config.json"
 
-# Parametry matrycy
-MATRIX_ARGS = [
-    "--led-rows=32",
-    "--led-cols=128",
-    "--led-chain=2",
-    "--led-gpio-mapping=adafruit-hat",
-    "--led-slowdown-gpio=3"
-]
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
+            return json.load(f)
+    return {
+        "brightness": 50,
+        "source_dir": "../media/gifs",
+        "slowdown": 4
+    }
 
-# Aktualny proces wyświetlania
-current_process = None
+def save_config(cfg):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(cfg, f)
 
-def stop_current_display():
-    """Zatrzymaj aktualne wyświetlanie."""
-    global current_process
-    if current_process:
-        print(f"Zatrzymuję proces PID: {current_process.pid}")
+config = load_config()
+
+def stop_current():
+    global CURRENT_PROCESS
+    if CURRENT_PROCESS:
         try:
-            current_process.terminate()
-            current_process.wait(timeout=5)
-            print("Proces zatrzymany gracefully")
-        except subprocess.TimeoutExpired:
-            current_process.kill()
-            print("Proces zabity forcefully")
-        current_process = None
-    else:
-        print("Brak aktywnego procesu do zatrzymania")
+            CURRENT_PROCESS.send_signal(signal.SIGTERM)
+            CURRENT_PROCESS.wait(timeout=5)  # Wait for process to terminate
+        except (OSError, subprocess.TimeoutExpired):
+            try:
+                CURRENT_PROCESS.kill()  # Force kill if needed
+            except OSError:
+                pass
+        CURRENT_PROCESS = None
 
-@app.route('/')
+@app.route("/")
 def index():
-    """Strona główna z interfejsem webowym."""
-    gif_files = [f for f in os.listdir(GIF_DIR) if f.endswith(('.gif', '.jpg', '.png'))] if os.path.exists(GIF_DIR) else []
-    return render_template_string("""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Kontrola Matrycy LED</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        form { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
-        input, select, button { margin: 5px; padding: 8px; }
-    </style>
-</head>
-<body>
-    <h1>Kontrola Matrycy LED</h1>
+    return send_from_directory("static", "index.html")
 
-    <form action="/text" method="post">
-        <h2>Wyświetl tekst</h2>
-        <input type="text" name="text" placeholder="Tekst do wyświetlenia" required>
-        <input type="text" name="color" placeholder="Kolor RGB (np. 255,255,0)" value="255,255,0">
-        <input type="number" name="speed" step="0.1" placeholder="Prędkość (1-10)" value="7.0" min="0.1" max="20">
-        <button type="submit">Wyświetl tekst</button>
-    </form>
-
-    <form action="/gif" method="post">
-        <h2>Wyświetl GIF/Obraz</h2>
-        <select name="file" required>
-            {% for gif in gif_files %}
-            <option value="{{ gif }}">{{ gif }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Wyświetl</button>
-    </form>
-
-    <form action="/stop" method="post">
-        <h2>Zatrzymaj wyświetlanie</h2>
-        <button type="submit">Stop</button>
-    </form>
-</body>
-</html>
-    """, gif_files=gif_files)
-
-@app.route('/text', methods=['POST'])
-def display_text():
-    """Wyświetl przewijający się tekst."""
-    text = request.form.get('text', '')
-    color = request.form.get('color', '255,255,0')
-    speed = request.form.get('speed', '7.0')
-
-    if not text:
-        return "Brak tekstu", 400
-
-    stop_current_display()
-
-    # Stwórz tymczasowy plik z tekstem
-    import tempfile
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write(text)
-        temp_file = f.name
+@app.route("/play_folder", methods=["POST"])
+def play_folder():
+    stop_current()
+    folder = request.json.get("folder")
+    if not folder:
+        return jsonify({"error": "Folder name required"}), 400
+    folder_path = os.path.join(config["source_dir"], folder)
+    if not os.path.isdir(folder_path):
+        return jsonify({"error": "Folder does not exist"}), 400
+    brightness = config["brightness"]
 
     cmd = [
-        "sudo",
-        TEXT_SCROLLER,
-        "--led-no-hardware-pulse",
-        "-f", FONT_PATH,
-        "-C", color,
-        "-s", speed,
-        "-i", temp_file
-    ] + MATRIX_ARGS
+        "sudo", "./utils/led-image-viewer",
+        "-C", "-f", "-w15", "-t15", "-D80",
+        os.path.join(folder_path, "*"),
+        "--led-rows=32", "--led-cols=128",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={brightness}",
+        f"--led-slowdown-gpio={config['slowdown']}"
+    ]
 
-    print(f"Uruchamiam komendę tekst: {' '.join(cmd)}")
-    global current_process
-    current_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print(f"Uruchomiono proces tekst PID: {current_process.pid}")
-
-    # Usuń plik po uruchomieniu (proces go czyta)
-    import os
-    os.unlink(temp_file)
-
-    return "Wyświetlanie tekstu rozpoczęte"
-
-@app.route('/gif', methods=['POST'])
-def display_gif():
-    """Wyświetl GIF lub obraz."""
-    filename = request.form.get('file', '')
-    filepath = os.path.join(GIF_DIR, filename)
-
-    if not os.path.exists(filepath):
-        return "Plik nie istnieje", 404
-
-    stop_current_display()
-
-    cmd = [
-        "sudo",
-        LED_IMAGE_VIEWER,
-        "--led-no-hardware-pulse",
-        "-f", filepath
-    ] + MATRIX_ARGS
-
-    print(f"Uruchamiam komendę GIF: {' '.join(cmd)}")
-    global current_process
-    current_process = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print(f"Uruchomiono proces GIF PID: {current_process.pid}")
-
-    return f"Wyświetlanie {filename} rozpoczęte"
-
-@app.route('/stop', methods=['POST'])
-def stop_display():
-    """Zatrzymaj wyświetlanie."""
-    stop_current_display()
-    print("Wyświetlanie zatrzymane przez użytkownika")
-    return "Wyświetlanie zatrzymane"
-
-if __name__ == '__main__':
-    print("Uruchamiam serwer HTTP na porcie 5000...")
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False)
-    except KeyboardInterrupt:
-        stop_current_display()
-        print("Serwer zatrzymany.")
+        global CURRENT_PROCESS
+        CURRENT_PROCESS = subprocess.Popen(cmd)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/play_single", methods=["POST"])
+def play_single():
+    stop_current()
+    gif_path = request.json.get("path")
+    if not gif_path:
+        return jsonify({"error": "File path required"}), 400
+    full_path = os.path.join(config["source_dir"], gif_path)
+    if not os.path.isfile(full_path):
+        return jsonify({"error": "File does not exist"}), 400
+    brightness = config["brightness"]
+
+    cmd = [
+        "sudo", "./utils/led-image-viewer",
+        "-C", "-f", "-t15", "-D80",
+        full_path,
+        "--led-rows=32", "--led-cols=128",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={brightness}",
+        f"--led-slowdown-gpio={config['slowdown']}"
+    ]
+
+    try:
+        global CURRENT_PROCESS
+        CURRENT_PROCESS = subprocess.Popen(cmd)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/brightness", methods=["POST"])
+def brightness():
+    try:
+        value = int(request.json["value"])
+        if not 0 <= value <= 100:
+            return jsonify({"error": "Brightness must be between 0 and 100"}), 400
+        config["brightness"] = value
+        save_config(config)
+        return jsonify({"brightness": value})
+    except (ValueError, KeyError):
+        return jsonify({"error": "Invalid brightness value"}), 400
+
+@app.route("/scroll_text", methods=["POST"])
+def scroll_text():
+    stop_current()
+    text = request.json.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "Text required"}), 400
+
+    cmd = [
+        "sudo", "./examples-api-use/scrolling-text-example",
+        "--led-rows=32", "--led-cols=128",
+        "--led-gpio-mapping=adafruit-hat",
+        f"--led-brightness={config['brightness']}",
+        text
+    ]
+
+    try:
+        global CURRENT_PROCESS
+        CURRENT_PROCESS = subprocess.Popen(cmd)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/stop", methods=["POST"])
+def stop():
+    stop_current()
+    return jsonify({"status": "stopped"})
+
+@app.route("/set_source_dir", methods=["POST"])
+def set_source_dir():
+    new_dir = request.json.get("source_dir")
+    if not new_dir or not os.path.isdir(new_dir):
+        return jsonify({"error": "Invalid or non-existent directory"}), 400
+    config["source_dir"] = new_dir
+    save_config(config)
+    return jsonify({"source_dir": new_dir})
+
+@app.route("/list_files")
+def list_files():
+    try:
+        files = os.listdir(config["source_dir"])
+        return jsonify({"files": files})
+    except OSError as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
