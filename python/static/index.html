@@ -254,14 +254,11 @@
                     if (file.toLowerCase().endsWith('.gif')) {
                         const img = document.createElement('img');
                         img.src = `/media/gifs/${file}`;
-                        img.width = 50;
-                        img.height = 50;
+                        img.style.height = '50px';
+                        img.style.width = 'auto';
                         img.style.marginRight = '10px';
                         div.appendChild(img);
                     }
-                    const span = document.createElement('span');
-                    span.textContent = file;
-                    div.appendChild(span);
                     const playBtn = document.createElement('button');
                     playBtn.textContent = 'Play';
                     playBtn.addEventListener('click', () => playFile(file));
