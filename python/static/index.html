@@ -9,7 +9,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
             color: #fff;
             min-height: 100vh;
             display: flex;
@@ -138,7 +138,7 @@
         <button id="scroll-btn">Scroll Text</button>
     </div>
 
-    <div class="control">
+    <div class="control" style="display: none;">
         <input type="text" id="source-dir" placeholder="Source directory" value="media/gifs">
         <button id="set-source-btn">Set Source Directory</button>
     </div>
@@ -253,7 +253,7 @@
                     div.className = 'file-item';
                     if (file.toLowerCase().endsWith('.gif')) {
                         const img = document.createElement('img');
-                        img.src = `media/gifs/${file}`;
+                        img.src = `/media/gifs/${file}`;
                         img.width = 50;
                         img.height = 50;
                         img.style.marginRight = '10px';
