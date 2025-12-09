@@ -10,10 +10,7 @@ CURRENT_PROCESS = None
 CONFIG_FILE = "config.json"
 
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE) as f:
-            return json.load(f)
-    return {
+    defaults = {
         "brightness": 50,
         "source_dir": "media/gifs",
         "slowdown": 4,
@@ -21,6 +18,14 @@ def load_config():
         "led_cols": 128,
         "led_gpio_mapping": "adafruit-hat"
     }
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE) as f:
+            cfg = json.load(f)
+        # Merge with defaults
+        for key, value in defaults.items():
+            cfg.setdefault(key, value)
+        return cfg
+    return defaults
 
 def save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
