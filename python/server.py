@@ -15,7 +15,7 @@ def load_config():
             return json.load(f)
     return {
         "brightness": 50,
-        "source_dir": "../media/gifs",
+        "source_dir": "media/gifs",
         "slowdown": 4
     }
 
@@ -54,7 +54,7 @@ def play_folder():
     brightness = config["brightness"]
 
     cmd = [
-        "sudo", "./utils/led-image-viewer",
+        "sudo", "../utils/led-image-viewer",
         "-C", "-f", "-w15", "-t15", "-D80",
         os.path.join(folder_path, "*"),
         "--led-rows=32", "--led-cols=128",
@@ -82,7 +82,7 @@ def play_single():
     brightness = config["brightness"]
 
     cmd = [
-        "sudo", "./utils/led-image-viewer",
+        "sudo", "../utils/led-image-viewer",
         "-C", "-f", "-t15", "-D80",
         full_path,
         "--led-rows=32", "--led-cols=128",
@@ -118,7 +118,7 @@ def scroll_text():
         return jsonify({"error": "Text required"}), 400
 
     cmd = [
-        "sudo", "./examples-api-use/scrolling-text-example",
+        "sudo", "../examples-api-use/scrolling-text-example",
         "--led-rows=32", "--led-cols=128",
         "--led-gpio-mapping=adafruit-hat",
         f"--led-brightness={config['brightness']}",
