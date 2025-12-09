@@ -232,31 +232,4 @@ def shuffle_folder():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    import threading
-    import time
-
-    def auto_shuffle():
-        time.sleep(2)  # Wait for server to start
-        try:
-            import random
-            files = [f for f in os.listdir(config["source_dir"]) if os.path.isfile(os.path.join(config["source_dir"], f))]
-            if not files:
-                return
-            random.shuffle(files)
-            file_paths = [os.path.join(config["source_dir"], f) for f in files]
-            cmd = [
-                "sudo", "../utils/led-image-viewer",
-                "-C", "-f"
-            ] + file_paths + [
-                "--led-rows=32", "--led-cols=128",
-                "--led-slowdown-gpio=4",
-                "--led-gpio-mapping=adafruit-hat",
-                f"--led-brightness={config['brightness']}"
-            ]
-            print("Auto shuffle command:", " ".join(cmd))
-            subprocess.Popen(cmd)
-        except Exception as e:
-            print("Auto shuffle error:", e)
-
-    threading.Thread(target=auto_shuffle, daemon=True).start()
     app.run(host="0.0.0.0", port=5000)
