@@ -110,6 +110,18 @@ def brightness():
     except (ValueError, KeyError):
         return jsonify({"error": "Invalid brightness value"}), 400
 
+@app.route("/slowdown", methods=["POST"])
+def slowdown():
+    try:
+        value = int(request.json["value"])
+        if not -1 <= value <= 4:
+            return jsonify({"error": "Slowdown must be between -1 and 4"}), 400
+        config["slowdown"] = value
+        save_config(config)
+        return jsonify({"slowdown": value})
+    except (ValueError, KeyError):
+        return jsonify({"error": "Invalid slowdown value"}), 400
+
 @app.route("/scroll_text", methods=["POST"])
 def scroll_text():
     stop_current()

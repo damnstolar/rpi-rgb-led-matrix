@@ -22,6 +22,12 @@
     </div>
 
     <div class="control">
+        <label for="slowdown">GPIO Slowdown:</label>
+        <input type="range" id="slowdown" min="-1" max="4" value="4">
+        <span id="slowdown-value">4</span>
+    </div>
+
+    <div class="control">
         <button id="stop-btn">Stop</button>
     </div>
 
@@ -43,6 +49,8 @@
     <script>
         const brightnessSlider = document.getElementById('brightness');
         const brightnessValue = document.getElementById('brightness-value');
+        const slowdownSlider = document.getElementById('slowdown');
+        const slowdownValue = document.getElementById('slowdown-value');
         const stopBtn = document.getElementById('stop-btn');
         const textInput = document.getElementById('text-input');
         const scrollBtn = document.getElementById('scroll-btn');
@@ -60,6 +68,20 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ value: parseInt(brightnessSlider.value) })
+            });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        });
+
+        slowdownSlider.addEventListener('input', () => {
+            slowdownValue.textContent = slowdownSlider.value;
+        });
+
+        slowdownSlider.addEventListener('change', async () => {
+            const response = await fetch('/slowdown', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ value: parseInt(slowdownSlider.value) })
             });
             const result = await response.json();
             if (!response.ok) alert('Error: ' + result.error);
