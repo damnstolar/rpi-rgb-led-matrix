@@ -16,7 +16,10 @@ def load_config():
     return {
         "brightness": 50,
         "source_dir": "media/gifs",
-        "slowdown": 4
+        "slowdown": 4,
+        "led_rows": 32,
+        "led_cols": 128,
+        "led_gpio_mapping": "adafruit-hat"
     }
 
 def save_config(cfg):
@@ -57,8 +60,9 @@ def play_folder():
         "sudo", "../utils/led-image-viewer",
         "-C", "-f", "-w15", "-t15", "-D80",
         os.path.join(folder_path, "*"),
-        "--led-rows=32", "--led-cols=128",
-        "--led-gpio-mapping=adafruit-hat",
+        f"--led-rows={config['led_rows']}",
+        f"--led-cols={config['led_cols']}",
+        f"--led-gpio-mapping={config['led_gpio_mapping']}",
         f"--led-brightness={brightness}",
         f"--led-slowdown-gpio={config['slowdown']}"
     ]
@@ -85,8 +89,9 @@ def play_single():
         "sudo", "../utils/led-image-viewer",
         "-C", "-f", "-t15", "-D80",
         full_path,
-        "--led-rows=32", "--led-cols=128",
-        "--led-gpio-mapping=adafruit-hat",
+        f"--led-rows={config['led_rows']}",
+        f"--led-cols={config['led_cols']}",
+        f"--led-gpio-mapping={config['led_gpio_mapping']}",
         f"--led-brightness={brightness}",
         f"--led-slowdown-gpio={config['slowdown']}"
     ]
@@ -132,8 +137,9 @@ def scroll_text():
     cmd = [
         "sudo", "../examples-api-use/scrolling-text-example",
         "-f", "../fonts/7x13.bdf",
-        "--led-rows=32", "--led-cols=128",
-        "--led-gpio-mapping=adafruit-hat",
+        f"--led-rows={config['led_rows']}",
+        f"--led-cols={config['led_cols']}",
+        f"--led-gpio-mapping={config['led_gpio_mapping']}",
         f"--led-brightness={config['brightness']}",
         text
     ]
@@ -181,6 +187,39 @@ def upload():
         return jsonify({"message": "File uploaded successfully", "filename": filename})
     else:
         return jsonify({"error": "Invalid file type. Only GIF, JPG, PNG allowed"}), 400
+
+@app.route("/shuffle_folder", methods=["POST"])
+def shuffle_folder():
+    stop_current()
+    import random
+    try:
+        files = [f for f in os.listdir(config["source_dir"]) if os.path.isfile(os.path.join(config["source_dir"], f))]
+        random.shuffle(files)
+        file_paths = [os.path.join(config["source_dir"], f) for f in files]
+        if not file_paths:
+            return jsonify({"error": "No files in directory"}), 400
+    except OSError:
+        return jsonify({"error": "Cannot access directory"}), 500
+
+    brightness = config["brightness"]
+
+    cmd = [
+        "sudo", "../utils/led-image-viewer",
+        "-C", "-f", "-w15", "-t15", "-D80"
+    ] + file_paths + [
+        f"--led-rows={config['led_rows']}",
+        f"--led-cols={config['led_cols']}",
+        f"--led-gpio-mapping={config['led_gpio_mapping']}",
+        f"--led-brightness={brightness}",
+        f"--led-slowdown-gpio={config['slowdown']}"
+    ]
+
+    try:
+        global CURRENT_PROCESS
+        CURRENT_PROCESS = subprocess.Popen(cmd)
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

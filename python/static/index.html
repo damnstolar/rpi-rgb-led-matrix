@@ -29,6 +29,7 @@
 
     <div class="control">
         <button id="stop-btn">Stop</button>
+        <button id="shuffle-btn">Shuffle Folder</button>
     </div>
 
     <div class="control">
@@ -57,6 +58,7 @@
         const slowdownSlider = document.getElementById('slowdown');
         const slowdownValue = document.getElementById('slowdown-value');
         const stopBtn = document.getElementById('stop-btn');
+        const shuffleBtn = document.getElementById('shuffle-btn');
         const textInput = document.getElementById('text-input');
         const scrollBtn = document.getElementById('scroll-btn');
         const sourceDirInput = document.getElementById('source-dir');
@@ -96,6 +98,12 @@
 
         stopBtn.addEventListener('click', async () => {
             const response = await fetch('/stop', { method: 'POST' });
+            const result = await response.json();
+            if (!response.ok) alert('Error: ' + result.error);
+        });
+
+        shuffleBtn.addEventListener('click', async () => {
+            const response = await fetch('/shuffle_folder', { method: 'POST' });
             const result = await response.json();
             if (!response.ok) alert('Error: ' + result.error);
         });
